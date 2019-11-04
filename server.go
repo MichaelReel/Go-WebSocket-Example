@@ -8,24 +8,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/kelseyhightower/envconfig"
-	"github.com/urfave/negroni"
 )
 
 var (
-	config   configuration
 	upgrader = websocket.Upgrader{} // use default options
 )
-
-type configuration struct {
-	Debug         bool   `default:"true"`
-	Scheme        string `default:"http"`
-	ListenAddress string `default:":8080"`
-	PrivateKey    string `default:"ssl/server.key"`
-	Certificate   string `default:"ssl/server.pem"`
-}
 
 type httpErr struct {
 	Msg  string `json:"msg"`
@@ -60,7 +48,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			handleErr(w, errors.New("Only text message are supported"), http.StatusNotImplemented)
 			break
 		}
-		var v message
+		var v string
 		json.Unmarshal(msg, &v)
 		err = c.WriteMessage(mt, []byte(msg))
 		if err != nil {
@@ -71,47 +59,8 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-
-	// Default values
-	err := envconfig.Process("SOCKETCAM", &config)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	if config.Debug {
-		log.Printf("==> SCHEME: %v", config.Scheme)
-		log.Printf("==> ADDRESS: %v", config.ListenAddress)
-		log.Printf("==> PRIVATEKEY: %v", config.PrivateKey)
-		log.Printf("==> CERTIFICATE: %v", config.Certificate)
-	}
-
-	router := newRouter()
-	n := negroni.Classic()
-
-	n.UseHandler(router)
-	if config.Scheme == "https" {
-		log.Fatal(http.ListenAndServeTLS(config.ListenAddress, config.Certificate, config.PrivateKey, n))
-
-	} else {
-		log.Fatal(http.ListenAndServe(config.ListenAddress, n))
-
-	}
-}
-
-// NewRouter is the constructor for all my routes
-func newRouter() *mux.Router {
-
-	router := mux.NewRouter().StrictSlash(true)
-
-	router.
-		Methods("GET").
-		Path("/ws").
-		Name("Communication Channel").
-		HandlerFunc(serveWs)
-
-	router.
-		Methods("GET").
-		PathPrefix("/").
-		Name("Static").
-		Handler(http.FileServer(http.Dir("./htdocs")))
-	return router
+	fs := http.FileServer(http.Dir("htdocs"))
+	http.Handle("/", fs)
+	http.HandleFunc("/ws", serveWs)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
