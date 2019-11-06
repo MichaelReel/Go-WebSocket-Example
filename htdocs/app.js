@@ -1,5 +1,6 @@
-window.addEventListener("load", function(evt) {
-
+window.addEventListener(
+  "load", 
+  function(evt) {
     var output = document.getElementById("output");
     var input = document.getElementById("input");
     var ws;
@@ -44,7 +45,7 @@ window.addEventListener("load", function(evt) {
         return false;
       }
       print("SEND: " + input.value);
-      ws.send(input.value);
+      ws.send(JSON.stringify({ type: "message", target: "global", value: input.value }));
       return false;
     };
   
@@ -52,7 +53,9 @@ window.addEventListener("load", function(evt) {
       if (!ws) {
         return false;
       }
+      ws.send(JSON.stringify({ type: "close", meh : "Meh"}));
       ws.close();
       return false;
     };
-  });
+  }
+);
