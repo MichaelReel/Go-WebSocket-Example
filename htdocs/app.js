@@ -32,7 +32,11 @@ window.addEventListener(
         ws = null;
       }
       ws.onmessage = function(evt) {
-        print("RESPONSE: " + evt.data);
+        let message = JSON.parse(evt.data)
+        switch(message.type) {
+          case "message":
+            print("RESPONSE: " + message.value);
+        }
       }
       ws.onerror = function(evt) {
         print("ERROR: " + evt.data);

@@ -22,6 +22,18 @@ type httpErr struct {
 	Code int    `json:"code"`
 }
 
+type ingress struct {
+	Type   string `json:"type"`
+	Target string `json:"target"`
+	Value  string `json:"value"`
+}
+
+type egress struct {
+	Type   string `json:"type"`
+	Source string `json:"source"`
+	Value  string `json:"value"`
+}
+
 var connList = make(map[*websocket.Conn]bool, 16)
 var connMux sync.Mutex
 
@@ -67,29 +79,29 @@ func handleErr(w http.ResponseWriter, err error, status int) {
 }
 
 func clientMessage(msg []byte, c *websocket.Conn) error {
-	var v struct {
-		Type   string `json:"type"`
-		Target string `json:"target"`
-		Value  string `json:"value"`
-	}
-	err := json.Unmarshal(msg, &v)
+	var ing ingress
+	err := json.Unmarshal(msg, &ing)
 	if err != nil {
 		return err
 	}
-	fmt.Println(v)
+	fmt.Println(ing)
 
-	switch v.Type {
+	switch ing.Type {
 	case "message":
-		switch v.Target {
+		msg, _ := json.Marshal(&egress{
+			Type:  "message",
+			Value: ing.Value,
+		})
+		switch ing.Target {
 		case "global":
 			// Send the message back to the client
-			return writeGlobal(websocket.TextMessage, []byte(v.Value))
+			return writeGlobal(websocket.TextMessage, []byte(msg))
 		case "echo":
 			// Send the message back to the client
-			return c.WriteMessage(websocket.TextMessage, []byte(v.Value))
+			return c.WriteMessage(websocket.TextMessage, []byte(msg))
 		}
 	}
-	fmt.Println("no handler for type " + v.Type + " and target " + v.Target)
+	fmt.Println("no handler for type " + ing.Type + " and target " + ing.Target)
 	return nil
 }
 
