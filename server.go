@@ -44,7 +44,7 @@ func handleErr(w http.ResponseWriter, err error, status int) {
 	http.Error(w, string(msg), status)
 }
 
-func clientMessage(msg []byte, c *websocket.Conn) error {
+func clientMessage(msg []byte, c Conn) error {
 	var ing ingress
 	err := json.Unmarshal(msg, &ing)
 	if err != nil {
@@ -54,17 +54,17 @@ func clientMessage(msg []byte, c *websocket.Conn) error {
 
 	switch ing.Type {
 	case "message":
-		msg, _ := json.Marshal(&egress{
+		jmsg, _ := json.Marshal(&egress{
 			Type:  "message",
 			Value: ing.Value,
 		})
 		switch ing.Target {
 		case "global":
 			// Send the message back to the client
-			return WriteGlobal(websocket.TextMessage, []byte(msg))
+			return WriteGlobal(websocket.TextMessage, []byte(jmsg))
 		case "echo":
 			// Send the message back to the client
-			return c.WriteMessage(websocket.TextMessage, []byte(msg))
+			return c.WriteMessage(websocket.TextMessage, []byte(jmsg))
 		}
 	}
 	fmt.Println("no handler for type \"" + ing.Type + "\" and target \"" + ing.Target + "\"")

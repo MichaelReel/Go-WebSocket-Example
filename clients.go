@@ -5,22 +5,23 @@ import (
 	"sync"
 )
 
-type conn interface {
+// Conn is the client connection interface, this may change
+type Conn interface {
 	WriteMessage(mt int, msg []byte) error
 }
 
-var connList = make(map[conn]bool, 16)
+var connList = make(map[Conn]bool, 16)
 var connMux sync.Mutex
 
 // AddConnection adds a connection to the set of clients
-func AddConnection(add conn) {
+func AddConnection(add Conn) {
 	connMux.Lock()
 	defer connMux.Unlock()
 	connList[add] = true
 }
 
 // DelConnection removes a connection from the set of clients
-func DelConnection(del conn) {
+func DelConnection(del Conn) {
 	connMux.Lock()
 	defer connMux.Unlock()
 	delete(connList, del)
@@ -43,4 +44,9 @@ func WriteGlobal(mt int, msg []byte) error {
 		}
 	}
 	return retErr
+}
+
+// Count returns the count of connections in the set
+func Count() int {
+	return len(connList)
 }
